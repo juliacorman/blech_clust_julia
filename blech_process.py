@@ -191,6 +191,7 @@ filtered_data = electrode.preprocess_electrode()
 #############################################################
 
 # Extract and process spikes from filtered data
+print("b_p.py: Shape of filtered_data is:", filtered_data.shape)
 spike_set = bpu.spike_handler(filtered_data,
                               params_dict, data_dir_name, electrode_num)
 (
@@ -301,6 +302,9 @@ if classifier_params['use_classifier'] and \
         classifier_params['use_neuRecommend']:
     print(' == Using neuRecommend classifier ==')
     # Full classification pipeline also has feature transformation pipeline
+    print("Shape of slices=", spike_set.slices_dejittered.shape)
+    print("Shape of times=", spike_set.times_dejittered.shape)
+    
     classifier_handler.classify_waveforms(
         spike_set.slices_dejittered,
         spike_set.times_dejittered,

@@ -32,7 +32,7 @@ Workflow 1: Basic LFP Extraction
 from blech_clust.utils.ephys_data import lfp_processing
 
 # Set parameters for LFP extraction
-params = {
+params = {  
     'freq_bounds': [1, 300],          # Frequency range in Hz
     'sampling_rate': 30000,           # Original sampling rate
     'taste_signal_choice': 'Start',   # Trial alignment
@@ -753,3 +753,79 @@ def return_good_lfp_trials(data, MAD_threshold=3):
     good_trials_bool = return_good_lfp_trial_inds(
         data, MAD_threshold)
     return data[:, good_trials_bool]
+
+
+# ==============================
+# OUTPUT DIRECTORY CONFIGURATION
+# ==============================
+# Set default output directory for exported arrays
+FILTERED_LFP_OUTPUT_DIR = './filtered_lfp_exports'  # Change this path as needed
+
+def save_filtered_lfp_by_taste(hdf5_path, output_dir=None, MAD_threshold=3, apply_quality_control=True):
+    """Save filtered LFP data separated by taste as numpy arrays
+    
+    Extracts LFP data from HDF5 file, applies optional quality control filtering,
+    and saves each taste's data as a separate .npy file.
+    
+    Args:
+        hdf5_path: Path to HDF5 file containing parsed LFP data
+        output_dir: Directory to save exported arrays (default: FILTERED_LFP_OUTPUT_DIR)
+        MAD_threshold: MAD threshold for quality control filtering (default: 3)
+        apply_quality_control: Whether to filter out bad trials (default: True)
+    
+    Returns:
+        dict: Dictionary mapping taste names to output file paths
+        
+    Side Effects:
+        - Creates output directory if it doesn't exist
+        - Saves .npy files for each taste's LFP data
+    """
+    if output_dir is None:
+        output_dir = FILTERED_LFP_OUTPUT_DIR
+    
+    # Create output directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f'Created output directory: {output_dir}')
+    
+    # Open HDF5 file
+    hf5 = tables.open_file(hdf5_path, 'r')
+    
+    saved_files = {}
+    
+    try:
+        # Get all parsed LFP nodes
+        lfp_nodes = hf5.list_nodes('/Parsed_LFP')
+        
+        print(f'Exporting filtered LFP data by taste to: {output_dir}')
+        
+        for node in tqdm(lfp_nodes):
+            taste_name = node._v_name
+            
+            # Load LFP data for this taste
+            lfp_data = np.array(node[:])  # Shape: (channels, trials, time)
+            
+            # Apply quality control filtering if requested
+            if apply_quality_control:
+                print(f'  Applying quality control to {taste_name}...')
+                lfp_data_filtered = return_good_lfp_trials(lfp_data, MAD_threshold)
+                print(f'    Retained {lfp_data_filtered.shape[1]}/{lfp_data.shape[1]} trials')
+                data_to_save = lfp_data_filtered
+            else:
+                data_to_save = lfp_data
+            
+            # Create output filename
+            output_filename = os.path.join(output_dir, f'{taste_name}_filtered.npy')
+            
+            # Save as numpy array
+            np.save(output_filename, data_to_save)
+            saved_files[taste_name] = output_filename
+            
+            print(f'  Saved {taste_name} - Shape: {data_to_save.shape}')
+        
+        print(f'\nSuccessfully exported {len(saved_files)} taste(s) to {output_dir}')
+        
+    finally:
+        hf5.close()
+    
+    return saved_files

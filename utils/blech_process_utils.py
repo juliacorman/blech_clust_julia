@@ -1070,7 +1070,7 @@ class spike_handler():
 
         # Dejitter spikes
         self.dejitter_spikes()
-
+        print("From 1073 of BPU, shape of slices_dejittered: ", self.slices_dejittered.shape) 
         return (self.slices_dejittered, self.times_dejittered,
                 self.threshold, self.mean_val, self.MAD_val)
 
@@ -1124,8 +1124,9 @@ class spike_handler():
         """
         Dejitter spikes
         """
+        print("From 1129 of bpu.py, slices has shape:", self.slices.shape)
         slices_dejittered, times_dejittered = clust.dejitter_abu3(
-            self.slices,
+            self.slices, #has size large x 54
             self.spike_times,
             polarity=self.polarity,
             spike_snapshot=[self.params_dict['spike_snapshot_before'],
@@ -1138,7 +1139,7 @@ class spike_handler():
         slices_dejittered = slices_dejittered[spike_order]
         polarity = self.polarity[spike_order]
 
-        self.slices_dejittered = slices_dejittered
+        self.slices_dejittered = slices_dejittered #has size large x 50
         self.times_dejittered = times_dejittered
         self.polarity = polarity
         del self.slices

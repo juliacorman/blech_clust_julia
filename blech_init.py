@@ -445,10 +445,14 @@ corr_mat_xr = xr.DataArray(
 )
 corr_mat_xr.to_netcdf(os.path.join(qa_out_path, 'channel_corr_mat.nc'))
 
+# Generate the processing scripts
+generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
+                            all_electrodes, all_params_dict)
+
 # Generate channel profile plots for non-traditional file types
 if file_type in ['one file per channel', 'one file per signal type']:
-    print('\nGenerating channel profile plots')
-    plot_channels(dir_name, qa_out_path, file_type)
+     print('\nGenerating channel profile plots')
+     plot_channels(dir_name, qa_out_path, file_type)
 ##############################
 
 ##############################
@@ -496,11 +500,6 @@ plt.savefig(os.path.join(qa_out_path, 'digital_inputs.png'))
 plt.close()
 
 ##############################
-
-
-# Generate the processing scripts
-generate_processing_scripts(dir_name, blech_clust_dir, electrode_layout_frame,
-                            all_electrodes, all_params_dict)
 
 print('blech_clust.py complete \n')
 print('*** Please check params file to make sure all is good ***\n')

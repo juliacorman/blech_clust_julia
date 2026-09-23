@@ -1,0 +1,35 @@
+{
+    "taste_params": {
+        "dig_in_nums": [
+            0,
+            1,
+            2,
+            3
+        ],
+        "tastes": [
+            "Water",
+            "NaCl",
+            "Sucrose",
+            "Quinine"
+        ],
+        "concs": [
+            1.0,
+            0.1,
+            0.3,
+            0.001
+        ],
+        "pal_rankings": [
+            2,
+            3,
+            4,
+            1
+        ]
+    },
+    "laser_params": {
+        "dig_in_nums": []
+    },
+    "notes": "JC20 taste day two. HDMI cable came unplugged from headstage around trial 72 (min 25 ish). Stopped the recording and restarted with the approximate amounf trials remaining. Tastes were delivered in pseudo-random order, so tastant deliveries are uneven. This files has the two parts of this session (orginally saved as separate recordings) combined into one. Second day of taste deliveries to taste naive rat, 16 electrodes implanted into GC, 12 implanted into RF, 2 EMG in AD. ",
+    "emg": {
+        "muscle": "ad"
+    }
+}
