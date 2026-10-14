@@ -118,6 +118,20 @@ mean_seq_firing['laser_tuple'] = [literal_eval(x) for x in
 sequestered_spikes_frame['laser_tuple'] = [
     literal_eval(x) for x in sequestered_spikes_frame.laser_tuple]
 
+##############################
+# Get region for each unit
+##############################
+this_dat.get_region_units()
+neuron_region_map = {}
+for region_name, unit_inds in zip(this_dat.region_names, this_dat.region_units):
+    for unit_ind in unit_inds:
+        neuron_region_map[unit_ind] = region_name
+
+
+def get_neuron_region(nrn_ind):
+    return neuron_region_map.get(nrn_ind, 'unknown')
+
+
 # Plot firing rates
 laser_conditions = np.sort(mean_seq_firing.laser_tuple.unique())
 n_laser_conditions = len(laser_conditions)
@@ -161,6 +175,9 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             hue='taste',
             ax=ax[i, 0],
         )
+        ax[i, 0].set_xlabel('Time from stimulus delivery (ms)')
+        ax[i, 0].set_ylabel('Firing Rate (Hz)')
+        ax[i, 0].set_title('Trial-averaged PSTH')
         # Plot laser condition
         if laser_cond != (0, 0):
             ax[i, 0].axvspan(laser_cond[0], np.sum(laser_cond), alpha=0.5,
@@ -179,16 +196,16 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
             legend=False,
             s=10,
         )
+        ax[i, 1].set_xlabel('Time from stimulus delivery (ms)')
+        ax[i, 1].set_ylabel('Cummulative Trial #')
+        ax[i, 1].set_title('Session Raster Overview')
         for block_i in range(len(taste_blocks)-1):
             block_start = taste_blocks[block_i]
             block_end = taste_blocks[block_i+1]
             ax[i, 1].axhspan(block_start, block_end, alpha=0.2, zorder=-1,
                              color=colors[block_i])
         for this_ax in ax[i, :-1]:
-            if i == len(ax)-1:
-                this_ax.set_xlabel('Time (ms)')
             this_ax.axvline(0, color='r', linestyle='--', linewidth=2)
-            this_ax.set_title(f'Laser condition {laser_cond}')
         # Plot waveforms
         datashader_img_path = os.path.join(
             waveform_dir, f'Unit{nrn_ind}_datashader.png')
@@ -201,7 +218,7 @@ for nrn_ind in tqdm(mean_seq_firing.neuron_num.unique()):
         for this_ax in ax[:, -1]:
             this_ax.axis('off')
     # g.set_title(f'Neuron {nrn_ind}')
-    fig.suptitle(f'Neuron {nrn_ind}')
+    fig.suptitle(f'Neuron {nrn_ind} ({get_neuron_region(nrn_ind)})')
     plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_firing_rate.png'),
                 bbox_inches='tight')
     plt.close()
@@ -237,7 +254,7 @@ if n_laser_conditions > 1:
             if i == 0:
                 this_ax.set_ylabel('Firing rate (Hz)')
                 this_ax.legend(title='Laser condition (lag, duration)')
-        fig.suptitle(f'Neuron {nrn_ind}')
+        fig.suptitle(f'Neuron {nrn_ind} ({get_neuron_region(nrn_ind)})')
         plt.savefig(os.path.join(plot_dir, f'neuron_{nrn_ind}_opto_overlay.png'),
                     bbox_inches='tight')
         plt.close()
@@ -368,6 +385,8 @@ g = sns.heatmap(resp_neurons_pivot,
                 linewidth=0.5,
                 cbar_kws={'label': 'Significant (1 = yes, 0 = no)'},
                 )
+g.set_yticklabels(
+    [f'{x} ({get_neuron_region(x)})' for x in resp_neurons_pivot.index])
 plt.title('Responsiveness of neurons\n' +
           f'alpha={alpha}, corrected alpha={corrected_alpha}')
 plt.xlabel('Laser condition\n(lag, duration)')
@@ -541,6 +560,8 @@ sns.heatmap(bin_sig_pivot,
             )
 ax[0].set_title('Discriminability ANOVA')
 ax[1].set_title('Dynamic ANOVA')
+ax[0].set_yticklabels(
+    [f'{x} ({get_neuron_region(x)})' for x in taste_sig_pivot.index])
 plt.suptitle('Discriminability + Dynamicity of neurons\n' +
              f'alpha={alpha}, corrected alpha={corrected_alpha}')
 for this_ax in ax:
@@ -764,6 +785,7 @@ this_pal_sig_frame['Source'] = 'palatability'
 out_frame = pd.concat(
     [this_resp_neurons, taste_bin_pval_frame, this_pal_sig_frame])
 out_frame.drop(columns=['p-unc'], inplace=True)
+out_frame['region'] = [get_neuron_region(x) for x in out_frame.neuron_num]
 
 out_frame.to_csv(os.path.join(dir_name, 'aggregated_characteristics.csv'),
                  index=False)

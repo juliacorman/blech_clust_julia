@@ -1,1 +1,1 @@
-parallel -k -j 27 --noswap --load 100% --progress --ungroup --joblog /home/julia-corman/Desktop/Personal_Data/JC20/JC20_taste_day2_combined//results.log bash blech_emg_jetstream_parallel1.sh ::: {0..108}
+parallel -k -j 27 --noswap --load 100% --progress --ungroup --joblog /home/julia-corman/Desktop/Personal_Data/JC20/JC20_taste_day2_260905_150433//results.log bash blech_emg_jetstream_parallel1.sh ::: {0..68}

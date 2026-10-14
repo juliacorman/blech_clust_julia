@@ -195,9 +195,12 @@ if '/emg_BSA_results/omega' not in hf5:
 
 max_n_trials = np.max(emg_trials_frame['trial_inds']) + 1
 
-emg_trials_frame['taste_num'] = emg_trials_frame['dig_in'].rank(
-    method='dense') - 1
-emg_trials_frame['taste_num'] = emg_trials_frame['taste_num'].astype(int)
+# Taste index follows the info file's taste order, not alphabetical order
+taste_to_num = {name: i for i, name in enumerate(taste_names)}
+dig_in_to_taste = emg_env_merge_frame.drop_duplicates('dig_in_name_taste').set_index(
+    'dig_in_name_taste')['taste']
+emg_trials_frame['taste_num'] = emg_trials_frame['dig_in'].map(
+    dig_in_to_taste).map(taste_to_num).astype(int)
 
 car_grouped_df = emg_trials_frame.groupby('car')
 
@@ -250,9 +253,8 @@ emg_env_merge_frame['car_num'] = emg_env_merge_frame['car'].rank(
     method='dense') - 1
 emg_env_merge_frame['car_num'] = emg_env_merge_frame['car_num'].astype(int)
 
-emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste'].rank(
-    method='dense') - 1
-emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste_num'].astype(int)
+emg_env_merge_frame['taste_num'] = emg_env_merge_frame['taste'].map(
+    taste_to_num).astype(int)
 
 for row_ind, this_row in emg_env_merge_frame.iterrows():
     this_car_num = this_row['car_num']

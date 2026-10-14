@@ -1810,8 +1810,14 @@ class ephys_data():
             if taste_ind is None:
                 raise ValueError(
                     f"Could not find taste index for {this_row['dig_in_name_taste']}")
-            trial_inds = this_row['trial_inds']
-            this_seq_spikes = self.spikes[taste_ind][this_row['trial_inds']]
+            # Trials past the recording cutoff are absent from the spike arrays
+            n_trials = self.spikes[taste_ind].shape[0]
+            trial_inds = [x for x in this_row['trial_inds'] if x < n_trials]
+            if len(trial_inds) < len(this_row['trial_inds']):
+                print(f"Warning: {this_row['dig_in_name_taste']} has "
+                      f"{len(this_row['trial_inds']) - len(trial_inds)} trial(s) "
+                      f"in trial info missing from spikes (likely cutoff); skipping")
+            this_seq_spikes = self.spikes[taste_ind][trial_inds]
             self.sequestered_spikes.append(this_seq_spikes)
             spike_inds = np.where(this_seq_spikes)
             this_seq_spikes = pd.DataFrame(
@@ -1862,12 +1868,15 @@ class ephys_data():
             if taste_ind is None:
                 raise ValueError(
                     f"Could not find taste index for {this_row['dig_in_name_taste']}")
-            trial_inds = this_row['trial_inds']
+            # Trials past the recording cutoff are absent from the firing arrays
+            n_trials = self.firing_list[taste_ind].shape[0]
+            trial_inds = [x for x in this_row['trial_inds'] if x < n_trials]
             laser_tuple = (this_row['laser_lag_ms'],
                            this_row['laser_duration_ms'])
             this_seq_firing = self.firing_list[taste_ind][trial_inds]
             self.sequestered_firing.append(this_seq_firing)
-            inds = np.array(list(np.ndindex(this_seq_firing.shape)))
+            inds = np.array(list(np.ndindex(this_seq_firing.shape))).reshape(
+                -1, this_seq_firing.ndim)
             this_seq_firing = pd.DataFrame(
                 dict(
                     trial_num=inds[:, 0],

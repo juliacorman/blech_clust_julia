@@ -24,15 +24,31 @@ import sys
 import os
 import pandas as pd
 import warnings
+from glob import glob
 from tqdm import tqdm
 from blech_clust.utils.clustering import get_filtered_electrode
 from blech_clust.utils.blech_process_utils import return_cutoff_values
 from blech_clust.utils.blech_utils import imp_metadata, pipeline_graph_check
-from blech_clust.utils.read_file import DigInHandler
+from blech_clust.utils.read_file import DigInHandler, read_emg_channels
 
 # Suppress NaturalNameWarning from tables library for non-Python-identifier object names
 # This is because HDF5 does not like us naming our groups with the same names as the dig-ins, which can have characters that are not valid Python identifiers (e.g., spaces, dashes)
 warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+
+
+def reload_raw_emg_if_missing(hdf5_name, layout_frame):
+    # emg_freq_post_process.py deletes /raw_emg, so rebuild it from the .dat files
+    with tables.open_file(hdf5_name, 'r+') as hf5:
+        if '/raw_emg' in hf5 and len(hf5.list_nodes('/raw_emg')) > 0:
+            return
+        if '/raw_emg' in hf5:
+            hf5.remove_node('/', 'raw_emg', recursive=True)
+        hf5.create_group('/', 'raw_emg')
+    emg_bool = layout_frame['CAR_group'].astype(
+        str).str.lower().str.contains('emg')
+    if emg_bool.any():
+        print('/raw_emg missing...reloading EMG channels from .dat files')
+        read_emg_channels(hdf5_name, layout_frame)
 
 
 def create_spike_trains_for_digin(
@@ -159,6 +175,9 @@ if __name__ == '__main__':
         )
 
     # Open the hdf5 file after loading trial info frame
+    layout_frame = pd.read_csv(
+        glob(os.path.join(metadata_handler.dir_name, '*layout.csv'))[0])
+    reload_raw_emg_if_missing(metadata_handler.hdf5_name, layout_frame)
     hf5 = tables.open_file(metadata_handler.hdf5_name, 'r+')
 
     print(trial_info_frame.head())
@@ -282,8 +301,17 @@ if __name__ == '__main__':
     # Processing
     ############################################################
 
-    taste_starts_cutoff = trial_info_frame.loc[~cutoff_bool].\
-        groupby('dig_in_name_taste').start_taste.apply(np.array).tolist()
+    # Each taste's trials are taken directly from trial_info_frame, so the
+    # name, start times and laser params can never be paired with another taste
+    taste_trial_groups = {
+        name: group.sort_values('taste_rel_trial_num')
+        for name, group in trial_info_frame.loc[~cutoff_bool].groupby(
+            'dig_in_name_taste')
+    }
+    taste_starts_cutoff = {
+        name: group['start_taste'].values
+        for name, group in taste_trial_groups.items()
+    }
 
     # Load durations from params file
     durations = params_dict['spike_array_durations']
@@ -302,7 +330,7 @@ if __name__ == '__main__':
 
         # Pull out spike trains
         spike_trial_counts = []
-        for name, this_starts in zip(taste_digin_names, taste_starts_cutoff):
+        for name, this_starts in taste_starts_cutoff.items():
             print(f'Creating spike-trains for {name}')
             create_spike_trains_for_digin(
                 this_starts,
@@ -321,13 +349,9 @@ if __name__ == '__main__':
         ###############
         # Write out laser_duration and lag to hdf5 file
         if True in trial_info_frame['laser'] and '/spike_trains' in hf5:
-            trial_info_group = \
-                [x[1] for x in trial_info_frame.groupby('dig_in_name_taste')]
-            for this_group in trial_info_group:
-                this_group = this_group.sort_values('taste_rel_trial_num')
+            for this_dig_in_name, this_group in taste_trial_groups.items():
                 laser_durations = this_group['laser_duration_ms'].values
                 laser_lags = this_group['laser_lag_ms'].values
-                this_dig_in_name = this_group['dig_in_name_taste'].values[0]
                 dig_in_path = f'/spike_trains/{this_dig_in_name}'
                 if f'{dig_in_path}/laser_durations' in hf5:
                     hf5.remove_node(dig_in_path, 'laser_durations')
@@ -361,7 +385,7 @@ if __name__ == '__main__':
 
         # Pull out emg trials
         emg_trial_counts = []
-        for name, this_starts in zip(taste_digin_names, taste_starts_cutoff):
+        for name, this_starts in taste_starts_cutoff.items():
             print(f'Creating emg-trials for {name}')
             create_emg_trials_for_digin(
                 this_starts,

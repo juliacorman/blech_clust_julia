@@ -158,8 +158,14 @@ emg_env_df = pd.DataFrame(
     )
 )
 
-emg_env_df['dig_in_ind'] = emg_env_df.dig_in.rank(
-    method='dense').astype(int) - 1
+# dig_in_ind follows the info file's taste order, not alphabetical dig-in order
+taste_names = metadata_handler.info_dict['taste_params']['tastes']
+trial_info_frame = pd.read_csv(os.path.join(data_dir, 'trial_info_frame.csv'))
+dig_in_to_taste = trial_info_frame.drop_duplicates('dig_in_name_taste').set_index(
+    'dig_in_name_taste')['taste']
+taste_to_ind = {name: i for i, name in enumerate(taste_names)}
+emg_env_df['dig_in_ind'] = emg_env_df.dig_in.map(
+    dig_in_to_taste).map(taste_to_ind).astype(int)
 
 
 emg_output_dir = os.path.join(data_dir, 'emg_output')
@@ -202,7 +208,7 @@ np.save('flat_emg_env_data.npy', flat_emg_env_data)
 #     np.save(os.path.join(dir_path, 'sig_trials.npy'), sig_trials_list[num])
 
 max_n_trials = emg_env_df.trial_inds.max() + 1
-n_dig_ins = emg_env_df.dig_in.nunique()
+n_dig_ins = len(taste_names)
 
 for this_car, this_df in emg_env_df.groupby('car'):
 

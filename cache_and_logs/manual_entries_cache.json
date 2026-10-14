@@ -28,7 +28,7 @@
     "laser_params": {
         "dig_in_nums": []
     },
-    "notes": "JC20 taste day two. HDMI cable came unplugged from headstage around trial 72 (min 25 ish). Stopped the recording and restarted with the approximate amounf trials remaining. Tastes were delivered in pseudo-random order, so tastant deliveries are uneven. This files has the two parts of this session (orginally saved as separate recordings) combined into one. Second day of taste deliveries to taste naive rat, 16 electrodes implanted into GC, 12 implanted into RF, 2 EMG in AD. ",
+    "notes": "JC20 taste day 2 (taste naive rat, one day of taste delivery day before current session). 16 electrodes in GC, 12 in RF, 2 EMG in AD. SPI cable came unplugged around trial 72, so recording stopped early. 30 second ITI with pseudorandom deliveries of sucrose, water, nacl, and quinine",
     "emg": {
         "muscle": "ad"
     }

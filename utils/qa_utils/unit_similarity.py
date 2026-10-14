@@ -17,6 +17,7 @@ import numpy as np
 import tables
 import sys
 import os
+import re
 import pandas as pd
 import matplotlib.pyplot as plt
 # Get script path
@@ -196,6 +197,19 @@ def write_out_similarties(unique_pairs, unique_pairs_collisions, waveform_counts
     with open(out_path, mode) as unit_similarity_violations:
         print(similarity_frame.to_string(), file=unit_similarity_violations)
 
+
+def remove_similarity_warning_blocks(warnings_file_path):
+    """Delete previous similarity warning blocks, leaving other QA warnings"""
+    if not os.path.exists(warnings_file_path):
+        return
+    with open(warnings_file_path, 'r') as f:
+        text = f.read()
+    text = re.sub(
+        r'\n*=== Similarity cutoff warning ===.*?=== End Similarity cutoff warning ===\n?',
+        '', text, flags=re.DOTALL)
+    with open(warnings_file_path, 'w') as f:
+        f.write(text)
+
 ############################################################
 
 
@@ -250,6 +264,9 @@ if __name__ == '__main__':
 
     # Generate visualization
     plot_similarity_matrix(unit_distances, similarity_cutoff, output_dir)
+
+    # Replace any warning block from a previous run
+    remove_similarity_warning_blocks(warnings_file_path)
 
     # If the similarity goes beyond the defined cutoff,
     # write these unit numbers to warnings file
